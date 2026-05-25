@@ -11,7 +11,7 @@ metadata:
   name: sender-vm-entry
   namespace: default
 spec:
-  address: "10.0.1.91"
+  address: "REPLACE_WITH_EC2_PRIVATE_IP"
   labels:
     app: sender-vm
     version: v1

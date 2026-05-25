@@ -156,8 +156,8 @@ EKS_LB=$(kubectl get gateway receiver-gateway -n default \
 ok "EKS LB: ${EKS_LB}"
 
 # Verificar que el receiver responde (puede tardar unos segundos)
-wait_for "receiver responde hello world" 120 \
-  "curl -sf http://${EKS_LB}/ | grep -q 'hello world'"
+wait_for "receiver responde hello world" 360 \
+  "curl -sf --max-time 5 http://${EKS_LB}/ | grep -q 'hello world'"
 ok "curl http://${EKS_LB}/ → hello world"
 
 # =============================================================================

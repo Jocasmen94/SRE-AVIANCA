@@ -80,9 +80,9 @@
 ## PASO 8 — Sender-VM se comunica con Receiver
 
 ### 08-PASO-8-ec2-curl-hello-world.jpg
-- **Contenido:** Curl desde la EC2 (sh-5.2$) al EKS LB
-- Origen: EC2 VM IP 10.0.1.91
-- Destino: EKS LB `af64d506b79384a59b65da19c810c604-b65bbac1d1da5d88.elb.us-east-1.amazonaws.com`
+- **Contenido:** Curl desde la EC2 (sh-5.2$) al FQDN interno del mesh
+- Origen: EC2 VM IP 10.0.1.64
+- Destino: `receiver.default.svc.cluster.local`
 - Response: HTTP/1.1 200 OK + `hello world`
 - Server: istio-envoy ✓
 

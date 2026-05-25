@@ -95,9 +95,10 @@ gcloud container clusters get-credentials "${GKE_NAME}" \
   --zone "${GCP_ZONE}" \
   --project "${GCP_PROJECT}"
 
-# Renombrar contexto GKE
+# Renombrar contexto GKE (eliminar alias previo si ya existe)
 GKE_CTX=$(kubectl config get-contexts -o name | grep "${GKE_NAME}" | head -1)
 if [[ "${GKE_CTX}" != "cluster2-gke" ]]; then
+  kubectl config delete-context cluster2-gke 2>/dev/null || true
   kubectl config rename-context "${GKE_CTX}" cluster2-gke
 fi
 ok "kubeconfig cluster2-gke"

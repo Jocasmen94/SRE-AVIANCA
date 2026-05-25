@@ -113,5 +113,5 @@
 | 6 | 05-PASO-4-sender-gke-logs-hello-world.jpg | PASO 4 | Sender logs hello world |
 | 7 | 06-PASO-6-pod-x-rbac-access-denied.jpg | PASO 6 | RBAC access denied |
 | 8 | 07-PASO-7-workloadentry-sender-vm.jpg | PASO 7 | VM en mesh |
-| 9 | 08-PASO-8-ec2-curl-hello-world.jpg | PASO 8 | EC2 → hello world |
+| 9 | 08-PASO-8-ec2-curl-hello-world.jpg | PASO 8 | EC2 → receiver.default.svc.cluster.local → hello world |
 | 10 | 09-PASO-9-authpolicy-sender-vm-principals.jpg | PASO 9 | 2 principals AuthPolicy |

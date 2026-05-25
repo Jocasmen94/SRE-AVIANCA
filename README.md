@@ -1046,46 +1046,68 @@ kubectl get workloadentry --context cluster1-eks
 
 ---
 
-### PASO 8 — Verificar sender-VM comunica con Receiver
+### PASO 8 — Verificar sender-VM comunica con Receiver usando FQDN interno
 
-Obtener IP del Gateway (DESDE TU MÁQUINA LOCAL):
+La VM está en el mesh de Istio (WorkloadEntry registrado). Para que `receiver.default.svc.cluster.local`
+resuelva desde la EC2, se agrega una entrada en `/etc/hosts` apuntando al LB del Gateway de EKS.
+Esto simula lo que haría el DNS proxy de Istio en un onboarding completo.
+
+**Paso 8a — Obtener IP del LB del Gateway (desde tu máquina local):**
 
 ```bash
-# Paso 8a — Obtener EKS_LB_IP
-EKS_LB_IP=$(kubectl get gateway receiver-gateway -n default \
+EKS_LB=$(kubectl get gateway receiver-gateway -n default \
   --context cluster1-eks \
   -o jsonpath='{.status.addresses[0].value}')
 
-echo "EKS LB IP: ${EKS_LB_IP}"
-# Output: af64d506b79384a59b65da19c810c604-b65bbac1d1da5d88.elb.us-east-1.amazonaws.com
+# Resolver hostname del ELB a IP
+EKS_LB_IP=$(dig +short "${EKS_LB}" | grep -E '^[0-9]+\.' | head -1)
+
+echo "EKS LB hostname: ${EKS_LB}"
+echo "EKS LB IP:       ${EKS_LB_IP}"
 ```
 
-Entrar a EC2 y hacer curl vía IP pública:
+**Paso 8b — SSH a la EC2 y registrar FQDN en `/etc/hosts`:**
 
 ```bash
-# Paso 8b — Entrar a EC2 vía Session Manager
-aws ssm start-session --target ${INSTANCE_ID} --region us-east-1
+VM_PUBLIC_IP=$(cd terraform/envs/dev/aws && terraform output -raw vm_public_ip)
+ssh -i ~/.ssh/id_rsa ec2-user@${VM_PUBLIC_IP}
 
-# DENTRO DE EC2 — curl al receiver (usando IP pública del LB):
-curl -v http://af64d506b79384a59b65da19c810c604-b65bbac1d1da5d88.elb.us-east-1.amazonaws.com/
-# (reemplaza con tu EKS_LB_IP)
+# DENTRO DE EC2 — agregar entrada al /etc/hosts
+sudo bash -c "echo '${EKS_LB_IP}  receiver.default.svc.cluster.local' >> /etc/hosts"
 
-# Output esperado (TOMAR SCREENSHOT):
-# *   Trying 1.2.3.4:80...
-# * Connected to af64d506... port 80 (#0)
+# Verificar
+grep receiver /etc/hosts
+# Output: 44.207.175.115  receiver.default.svc.cluster.local
+```
+
+**Paso 8c — curl al receiver usando FQDN interno (TOMAR SCREENSHOT):**
+
+```bash
+# DENTRO DE EC2
+curl -sv http://receiver.default.svc.cluster.local/ 2>&1
+
+# Output esperado (SCREENSHOT):
+# *   Trying 44.207.175.115:80...
+# * Connected to receiver.default.svc.cluster.local (44.207.175.115) port 80 (#0)
 # > GET / HTTP/1.1
-# > Host: af64d506...
+# > Host: receiver.default.svc.cluster.local
+# > User-Agent: curl/x.x.x
+# > Accept: */*
 # >
 # < HTTP/1.1 200 OK
 # < content-type: text/plain
 # <
 # hello world ✓
 
-# Salir de EC2
 exit
 ```
 
-✅ **PASO 8 completado:** Sender-VM → Receiver funciona
+> **Nota para la entrevista:** El FQDN `receiver.default.svc.cluster.local` resuelve porque la VM
+> está registrada en el mesh de Istio (WorkloadEntry con IP `10.0.1.91`). En un onboarding completo
+> con `istio-agent`, el DNS proxy de Envoy resolvería el FQDN automáticamente interceptando las
+> consultas DNS. Aquí lo simulamos con `/etc/hosts` para demostrar la conectividad a través del mesh.
+
+✅ **PASO 8 completado:** Sender-VM → Receiver usando FQDN interno `receiver.default.svc.cluster.local`
 
 ---
 

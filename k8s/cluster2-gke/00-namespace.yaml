@@ -1,0 +1,9 @@
+################################################################################
+# Namespace — label enables automatic Istio sidecar injection
+################################################################################
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: default
+  labels:
+    istio-injection: enabled

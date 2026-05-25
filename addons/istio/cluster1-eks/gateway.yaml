@@ -1,0 +1,32 @@
+# GatewayClass + Gateway — Cluster 1 (EKS)
+# Crea un NLB de AWS con IP pública para el Istio Ingress Gateway
+# Aplicar DESPUÉS de istioctl/Helm install:
+#   kubectl apply -f cluster1-eks/gateway.yaml --context cluster1-eks
+#
+# Obtener IP del LB (usarla en cluster2-gke/service-entry.yaml):
+#   kubectl get gateway receiver-gateway -n default --context cluster1-eks \
+#     -o jsonpath='{.status.addresses[0].value}'
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: istio
+spec:
+  controllerName: istio.io/gateway-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: receiver-gateway
+  namespace: default
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  gatewayClassName: istio
+  listeners:
+  - name: http
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: Same

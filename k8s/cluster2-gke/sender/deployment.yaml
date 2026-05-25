@@ -1,0 +1,47 @@
+################################################################################
+# Sender — makes HTTP requests to receiver in Cluster 1 (EKS)
+# IMPORTANT: Replace RECEIVER_LB_IP with the Gateway LB IP from Cluster 1:
+#   kubectl get gateway receiver-gateway -n default --context cluster1-eks \
+#     -o jsonpath='{.status.addresses[0].value}'
+################################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sender
+  namespace: default
+  labels:
+    app: sender
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sender
+  template:
+    metadata:
+      labels:
+        app: sender
+    spec:
+      containers:
+      - name: sender
+        image: curlimages/curl:latest
+        env:
+        - name: RECEIVER_URL
+          # Replace  with actual EKS gateway LB IP
+          value: "http://af64d506b79384a59b65da19c810c604-b65bbac1d1da5d88.elb.us-east-1.amazonaws.com/"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Sender started. Calling receiver every 10 seconds..."
+          while true; do
+            echo "--- $(date) ---"
+            curl -sv "${RECEIVER_URL}" 2>&1 | grep -E "< HTTP|hello world|Connected"
+            sleep 10
+          done
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi

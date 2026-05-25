@@ -1,0 +1,25 @@
+################################################################################
+# HTTPRoute — routes all traffic on the gateway to the receiver service
+# NOTE: After applying, get LB IP with:
+#   kubectl get gateway receiver-gateway -n default \
+#     -o jsonpath='{.status.addresses[0].value}'
+# Then update RECEIVER_LB_IP in k8s/cluster2-gke/sender/deployment.yaml
+################################################################################
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: receiver-route
+  namespace: default
+spec:
+  parentRefs:
+  - name: receiver-gateway
+    namespace: default
+  # No hostname filter — accepts any host (IP-based access)
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: receiver
+      port: 80

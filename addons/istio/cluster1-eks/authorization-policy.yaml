@@ -1,0 +1,25 @@
+# AuthorizationPolicy — Paso 5
+# Solo el Istio Ingress Gateway puede llegar al servicio receiver.
+# Cualquier otro origen (incluido pod-x) es DENEGADO implícitamente.
+#
+# Aplicar: kubectl apply -f cluster1-eks/authorization-policy.yaml --context cluster1-eks
+#
+# Demo bloqueo (paso 6):
+#   kubectl exec pod-x --context cluster1-eks -- curl -sv http://receiver/
+#   Esperado: RBAC: access denied
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: receiver-allow-ingress-only
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: receiver
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        # Gateway API crea un pod con SA: <namespace>/<gateway-name>-istio
+        principals:
+        - "cluster.local/ns/default/sa/receiver-gateway-istio"

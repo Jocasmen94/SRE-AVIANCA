@@ -1,0 +1,12 @@
+# PeerAuthentication — habilita mTLS STRICT en namespace default
+# Aplicar en ambos clusters:
+#   kubectl apply -f config/peer-authentication.yaml --context cluster1-eks
+#   kubectl apply -f config/peer-authentication.yaml --context cluster2-gke
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default
+spec:
+  mtls:
+    mode: STRICT

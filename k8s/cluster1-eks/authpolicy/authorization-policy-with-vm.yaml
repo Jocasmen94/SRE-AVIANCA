@@ -1,0 +1,22 @@
+################################################################################
+# AuthorizationPolicy — Step 9: allow IngressGateway + sender-vm
+# Apply this AFTER EC2 VM is onboarded to the mesh (replaces step 5 version)
+#
+# kubectl apply -f authpolicy/authorization-policy-with-vm.yaml --context cluster1-eks
+################################################################################
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: receiver-allow-ingress-only
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: receiver
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/default/sa/receiver-gateway-istio"
+        - "cluster.local/ns/default/sa/sender-vm"

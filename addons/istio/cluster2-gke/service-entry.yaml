@@ -1,0 +1,21 @@
+# ServiceEntry — Cluster 2 (GKE)
+# Permite al sender de GKE hacer requests al receiver en EKS (IP externa)
+# IMPORTANTE: Reemplazar EKS_LB_IP con el IP del Gateway de EKS:
+#   kubectl get gateway receiver-gateway -n default --context cluster1-eks \
+#     -o jsonpath='{.status.addresses[0].value}'
+#
+# Aplicar: kubectl apply -f cluster2-gke/service-entry.yaml --context cluster2-gke
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: receiver-external
+  namespace: default
+spec:
+  hosts:
+  - "af64d506b79384a59b65da19c810c604-b65bbac1d1da5d88.elb.us-east-1.amazonaws.com"
+  ports:
+  - number: 80
+    name: http
+    protocol: HTTP
+  location: MESH_EXTERNAL
+  resolution: DNS

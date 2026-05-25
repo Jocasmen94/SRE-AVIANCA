@@ -1,0 +1,23 @@
+################################################################################
+# AuthorizationPolicy — ALLOW only Istio IngressGateway to reach receiver
+# All other sources (including pod-x) are implicitly DENIED
+#
+# Step 5 of exam: default-deny + explicit allow for ingress gateway SA
+# Step 9 update: also allows sender-vm SA (after EC2 onboarding)
+################################################################################
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: receiver-allow-ingress-only
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: receiver
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        # Istio Gateway API creates a pod using the gateway's namespace + name as SA
+        principals:
+        - "cluster.local/ns/default/sa/receiver-gateway-istio"

@@ -1,0 +1,28 @@
+# Valores istiod — Cluster 2 (GKE)
+# Uso: helm upgrade --install istiod istio/istiod -n istio-system -f values-istiod-gke.yaml
+
+global:
+  meshID: mesh1
+  network: network-gke
+  logging:
+    level: "default:info"
+
+pilot:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaleEnabled: false
+  env:
+    PILOT_ENABLE_GATEWAY_API: "true"
+    PILOT_ENABLE_GATEWAY_API_STATUS: "true"
+
+meshConfig:
+  accessLogFile: /dev/stdout
+  accessLogEncoding: JSON
+  enableAutoMtls: true
+  outboundTrafficPolicy:
+    mode: ALLOW_ANY

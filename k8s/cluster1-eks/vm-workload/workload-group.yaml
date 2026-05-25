@@ -1,0 +1,25 @@
+################################################################################
+# WorkloadGroup — template for EC2 VM instances in the Istio mesh
+# Apply BEFORE running the onboarding script (scripts/03-onboard-vm.sh)
+################################################################################
+apiVersion: networking.istio.io/v1alpha3
+kind: WorkloadGroup
+metadata:
+  name: sender-vm
+  namespace: default
+spec:
+  metadata:
+    labels:
+      app: sender-vm
+      version: v1
+    annotations:
+      sidecar.istio.io/bootstrapOverride: "istio-sidecar-injector"
+  template:
+    serviceAccount: sender-vm
+    network: ""
+  probe:
+    periodSeconds: 5
+    initialDelaySeconds: 1
+    httpGet:
+      port: 8080
+      path: /healthz

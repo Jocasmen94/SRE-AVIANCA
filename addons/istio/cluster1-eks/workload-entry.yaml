@@ -1,0 +1,18 @@
+# WorkloadEntry — Paso 7
+# Registra la IP privada del EC2 en el mesh de Istio
+# IMPORTANTE: Reemplazar EC2_PRIVATE_IP con el output de Terraform:
+#   terraform -chdir=terraform/envs/dev output -raw vm_private_ip
+#
+# Aplicar DESPUÉS del onboarding:
+#   kubectl apply -f cluster1-eks/workload-entry.yaml --context cluster1-eks
+apiVersion: networking.istio.io/v1alpha3
+kind: WorkloadEntry
+metadata:
+  name: sender-vm-entry
+  namespace: default
+spec:
+  address: "10.0.1.91"
+  labels:
+    app: sender-vm
+    version: v1
+  serviceAccount: sender-vm

@@ -1,0 +1,24 @@
+# WorkloadGroup — Paso 7
+# Template para registrar la EC2 VM en el mesh de Istio del Cluster 1
+# Aplicar ANTES de correr el onboarding de la VM:
+#   kubectl apply -f cluster1-eks/workload-group.yaml --context cluster1-eks
+#   kubectl apply -f cluster1-eks/service-account.yaml --context cluster1-eks
+apiVersion: networking.istio.io/v1alpha3
+kind: WorkloadGroup
+metadata:
+  name: sender-vm
+  namespace: default
+spec:
+  metadata:
+    labels:
+      app: sender-vm
+      version: v1
+  template:
+    serviceAccount: sender-vm
+    network: ""
+  probe:
+    periodSeconds: 5
+    initialDelaySeconds: 1
+    httpGet:
+      port: 8080
+      path: /healthz

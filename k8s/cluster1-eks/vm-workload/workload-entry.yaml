@@ -1,0 +1,20 @@
+################################################################################
+# WorkloadEntry — registers the EC2 VM into the Istio mesh
+# IMPORTANT: Replace EC2_PRIVATE_IP with the actual value from Terraform output:
+#   terraform output vm_private_ip
+#
+# Apply AFTER running scripts/03-onboard-vm.sh
+################################################################################
+apiVersion: networking.istio.io/v1alpha3
+kind: WorkloadEntry
+metadata:
+  name: sender-vm-entry
+  namespace: default
+spec:
+  # Replace with: terraform -chdir=terraform/envs/dev output -raw vm_private_ip
+  address: "REPLACE_WITH_EC2_PRIVATE_IP"
+  labels:
+    app: sender-vm
+    version: v1
+  serviceAccount: sender-vm
+  network: ""

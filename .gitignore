@@ -1,0 +1,18 @@
+# Terraform
+terraform/envs/**/terraform.tfstate*
+terraform/envs/**/.terraform/
+terraform/envs/**/.terraform.lock.hcl
+terraform/envs/**/crash.log
+*.tfvars
+
+# Kubeconfig
+kubeconfig*
+.kube/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+*.swp

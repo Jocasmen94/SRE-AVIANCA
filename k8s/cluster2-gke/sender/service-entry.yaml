@@ -1,0 +1,19 @@
+################################################################################
+# ServiceEntry — allows GKE sender to reach the EKS receiver via external IP
+# Istio blocks egress to unknown hosts by default (outboundTrafficPolicy: REGISTRY_ONLY)
+# IMPORTANT: Replace REPLACE_WITH_EKS_LB_IP with actual EKS gateway LB IP
+################################################################################
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: receiver-external
+  namespace: default
+spec:
+  hosts:
+  - "af64d506b79384a59b65da19c810c604-b65bbac1d1da5d88.elb.us-east-1.amazonaws.com"
+  ports:
+  - number: 80
+    name: http
+    protocol: HTTP
+  location: MESH_EXTERNAL
+  resolution: DNS

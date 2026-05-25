@@ -17,14 +17,6 @@ log()  { echo -e "\n\033[1;34m[$(date +%H:%M:%S)] $*\033[0m"; }
 ok()   { echo -e "\033[1;32m  ✓ $*\033[0m"; }
 warn() { echo -e "\033[1;33m  ⚠ $*\033[0m"; }
 
-cleanup_sg() {
-  if [[ -n "${SG_ID:-}" && -n "${MY_IP:-}" ]]; then
-    aws ec2 revoke-security-group-ingress \
-      --group-id "${SG_ID}" --protocol tcp --port 22 --cidr "${MY_IP}/32" \
-      --region "${AWS_REGION}" 2>/dev/null && warn "Puerto 22 cerrado en SG" || true
-  fi
-}
-trap cleanup_sg EXIT
 
 # =============================================================================
 log "1 — Obtener outputs de Terraform"
@@ -77,58 +69,57 @@ kubectl apply -f "${ADDONS}/cluster1-eks/authorization-policy-with-vm.yaml" --co
 ok "AuthPolicy: receiver-gateway-istio + sender-vm"
 
 # =============================================================================
-log "5 — Abrir puerto 22 temporalmente para SSH"
+log "5 — PASO 8: configurar EC2 via SSM y abrir sesión interactiva"
 # =============================================================================
-MY_IP=$(curl -s https://checkip.amazonaws.com)
-ok "Tu IP pública: ${MY_IP}"
-
-SG_ID=$(aws ec2 describe-instances \
+INSTANCE_ID=$(aws ec2 describe-instances \
   --region "${AWS_REGION}" \
   --filters "Name=network-interface.association.public-ip,Values=${VM_PUBLIC_IP}" \
-  --query 'Reservations[0].Instances[0].SecurityGroups[0].GroupId' \
+  --query 'Reservations[0].Instances[0].InstanceId' \
   --output text)
-ok "Security Group: ${SG_ID}"
+ok "Instance ID: ${INSTANCE_ID}"
 
-aws ec2 authorize-security-group-ingress \
-  --group-id "${SG_ID}" \
-  --protocol tcp --port 22 --cidr "${MY_IP}/32" \
-  --region "${AWS_REGION}" 2>/dev/null && ok "Puerto 22 abierto para ${MY_IP}" || warn "Regla ya existe"
-
-# Esperar a que SSH esté disponible
-warn "Esperando SSH..."
-for i in $(seq 1 12); do
-  ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i "${SSH_KEY}" \
-    "ec2-user@${VM_PUBLIC_IP}" 'exit' 2>/dev/null && break
+# Esperar a que SSM esté disponible
+warn "Esperando SSM agent en EC2..."
+for i in $(seq 1 18); do
+  STATUS=$(aws ssm describe-instance-information \
+    --region "${AWS_REGION}" \
+    --filters "Key=InstanceIds,Values=${INSTANCE_ID}" \
+    --query 'InstanceInformationList[0].PingStatus' \
+    --output text 2>/dev/null || echo "None")
+  [[ "${STATUS}" == "Online" ]] && break
   echo -n "."
-  sleep 5
+  sleep 10
 done
 echo ""
-ok "SSH disponible"
+ok "SSM Online"
+
+# Agregar /etc/hosts en EC2 via SSM send-command
+CMD_ID=$(aws ssm send-command \
+  --instance-ids "${INSTANCE_ID}" \
+  --document-name "AWS-RunShellScript" \
+  --region "${AWS_REGION}" \
+  --parameters "commands=[\"grep -q receiver.default.svc.cluster.local /etc/hosts || echo '${EKS_LB_IP}  receiver.default.svc.cluster.local' | sudo tee -a /etc/hosts\"]" \
+  --query 'Command.CommandId' \
+  --output text)
+
+aws ssm wait command-executed \
+  --command-id "${CMD_ID}" \
+  --instance-id "${INSTANCE_ID}" \
+  --region "${AWS_REGION}" 2>/dev/null || true
+ok "/etc/hosts configurado en EC2"
 
 # =============================================================================
-log "6 — PASO 8: curl desde EC2 a receiver.default.svc.cluster.local"
-# =============================================================================
-ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "ec2-user@${VM_PUBLIC_IP}" bash <<REMOTE
-set -e
-# Agregar FQDN interno al /etc/hosts apuntando al LB de EKS
-grep -q "receiver.default.svc.cluster.local" /etc/hosts || \
-  sudo bash -c 'echo "${EKS_LB_IP}  receiver.default.svc.cluster.local" >> /etc/hosts'
-
-echo "=== /etc/hosts ==="
-grep "receiver" /etc/hosts || true
-
 echo ""
 echo "================================================================="
-echo "  PASO 8 — curl http://receiver.default.svc.cluster.local/"
+echo "  PASO 8 — SCREENSHOT"
+echo "  Abre una nueva terminal y ejecuta:"
+echo ""
+echo "  aws ssm start-session --target ${INSTANCE_ID} --region ${AWS_REGION}"
+echo ""
+echo "  Dentro de la EC2 ejecuta:"
+echo "  curl -sv http://receiver.default.svc.cluster.local/"
+echo ""
+echo "  Toma el screenshot mostrando 'hello world'"
 echo "================================================================="
 echo ""
-curl -sv http://receiver.default.svc.cluster.local/ 2>&1
-echo ""
-echo "================================================================="
-REMOTE
-
-echo ""
-ok "PASO 8 completado — toma el screenshot de la salida de arriba"
-echo ""
-echo "  Para abrir una sesión interactiva en la EC2:"
-echo "  ssh -i ~/.ssh/id_rsa ec2-user@${VM_PUBLIC_IP}"
+ok "Setup listo — abre la sesión SSM en otra terminal para el screenshot"
